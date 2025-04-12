@@ -23,21 +23,23 @@ let playerId = Math.random() > 0.5 ? 0 : 1;
 
 const gameRef = db.ref("game");
 
-gameRef.get().then(snapshot => {
+// Tạo dữ liệu nếu chưa có
+gameRef.once("value", (snapshot) => {
   if (!snapshot.exists()) {
     const numbers = Array.from({ length: 100 }, (_, i) => i + 1)
       .sort(() => Math.random() - 0.5);
-    const positions = {};
-    numbers.forEach((n) => positions[n] = false);
+    const chosen = {};
+    numbers.forEach((n) => chosen[n] = false);
     gameRef.set({
       numbers,
-      chosen: positions,
+      chosen,
       currentNumber: 1,
       scores: [0, 0]
     });
   }
 });
 
+// Lắng nghe dữ liệu game
 gameRef.on("value", (snapshot) => {
   const data = snapshot.val();
   if (!data) return;
