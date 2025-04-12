@@ -1,6 +1,3 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-import { getDatabase, ref, onValue, set, get, update } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
-
 const firebaseConfig = {
   apiKey: "AIzaSyDun0DzdCoYnWvNNQLn8KBPisU7U8ruXcE",
   authDomain: "chon-so.firebaseapp.com",
@@ -11,8 +8,8 @@ const firebaseConfig = {
   measurementId: "G-DPQZHPMMXF"
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
 const grid = document.getElementById("grid");
 const currentNumberEl = document.getElementById("current-number");
@@ -22,17 +19,17 @@ const winnerEl = document.getElementById("winner");
 
 let currentNumber = 1;
 let scores = [0, 0];
-let playerId = Math.random() > 0.5 ? 0 : 1; // Random player ID (0 or 1)
+let playerId = Math.random() > 0.5 ? 0 : 1;
 
-// Tạo danh sách số ngẫu nhiên nếu chưa có
-const gameRef = ref(db, "game");
-get(gameRef).then(snapshot => {
+const gameRef = db.ref("game");
+
+gameRef.get().then(snapshot => {
   if (!snapshot.exists()) {
     const numbers = Array.from({ length: 100 }, (_, i) => i + 1)
       .sort(() => Math.random() - 0.5);
     const positions = {};
-    numbers.forEach((n, i) => positions[n] = false);
-    set(gameRef, {
+    numbers.forEach((n) => positions[n] = false);
+    gameRef.set({
       numbers,
       chosen: positions,
       currentNumber: 1,
@@ -41,8 +38,7 @@ get(gameRef).then(snapshot => {
   }
 });
 
-// Lắng nghe dữ liệu thay đổi
-onValue(gameRef, (snapshot) => {
+gameRef.on("value", (snapshot) => {
   const data = snapshot.val();
   if (!data) return;
 
@@ -64,10 +60,10 @@ onValue(gameRef, (snapshot) => {
     cell.addEventListener("click", () => {
       if (num === currentNumber && !data.chosen[num]) {
         const updates = {};
-        updates["/game/chosen/" + num] = true;
-        updates["/game/currentNumber"] = currentNumber + 1;
-        updates["/game/scores/" + playerId] = scores[playerId] + 1;
-        update(ref(db), updates);
+        updates["chosen/" + num] = true;
+        updates["currentNumber"] = currentNumber + 1;
+        updates["scores"] = scores.map((s, i) => i === playerId ? s + 1 : s);
+        gameRef.update(updates);
       } else {
         cell.classList.add("wrong");
         setTimeout(() => cell.classList.remove("wrong"), 500);
